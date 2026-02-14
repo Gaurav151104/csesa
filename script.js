@@ -2,16 +2,7 @@
 // Unified script combining all Three.js, animations, and interactions
 // Cleaned up - removed all redundancy and duplicate code
 
-// DIAGNOSTIC: Log that script is loaded
-console.log('✅ script.js is loading...');
-console.log('THREE.js available:', typeof THREE !== 'undefined');
-console.log('GSAP available:', typeof gsap !== 'undefined');
-
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('✅ DOMContentLoaded fired - initializing script');
-    console.log('Modal element exists:', !!document.getElementById('eventModal'));
-    console.log('Modal3DIcon element exists:', !!document.getElementById('modal3DIcon'));
-    console.log('ModalRules element exists:', !!document.getElementById('modalRules'));
     
     // ===== 1. INITIALIZE THREE.JS SCENE =====
     const scene = new THREE.Scene();
@@ -74,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             this.sprite = new THREE.Sprite(material);
-            this.sprite.scale.set(0.25, 0.25, 1);
+            this.sprite.scale.set(0.12, 0.12, 1);  // Smaller dots
             
             // Random initial position (spread across viewport)
             this.sprite.position.x = (Math.random() - 0.5) * 25;
@@ -110,15 +101,27 @@ document.addEventListener('DOMContentLoaded', function() {
             this.sprite.position.y += this.velocity.y * this.speedMultiplier;
             this.sprite.position.z += this.velocity.z * this.speedMultiplier;
             
-            // Wrap particles around viewport for infinite movement
-            if (Math.abs(this.sprite.position.x) > 20) {
-                this.sprite.position.x *= -0.95;
+            // Smooth wraparound for infinite movement (prevents clustering)
+            const wrapX = 25;
+            const wrapY = 25;
+            const wrapZ = 15;
+            
+            if (this.sprite.position.x > wrapX) {
+                this.sprite.position.x = -wrapX;
+            } else if (this.sprite.position.x < -wrapX) {
+                this.sprite.position.x = wrapX;
             }
-            if (Math.abs(this.sprite.position.y) > 20) {
-                this.sprite.position.y *= -0.95;
+            
+            if (this.sprite.position.y > wrapY) {
+                this.sprite.position.y = -wrapY;
+            } else if (this.sprite.position.y < -wrapY) {
+                this.sprite.position.y = wrapY;
             }
-            if (Math.abs(this.sprite.position.z) > 15) {
-                this.sprite.position.z *= -0.95;
+            
+            if (this.sprite.position.z > wrapZ) {
+                this.sprite.position.z = -wrapZ;
+            } else if (this.sprite.position.z < -wrapZ) {
+                this.sprite.position.z = wrapZ;
             }
             
             // Gentle rotation (using rotationZ instead of read-only rotation)
@@ -518,7 +521,6 @@ document.addEventListener('DOMContentLoaded', function() {
      * @param {HTMLElement} container - Container to render the icon
      */
     function create3DModalIcon(container) {
-        console.log('create3DModalIcon function called with container:', container);
         const width = container.clientWidth || 64;
         const height = container.clientHeight || 64;
 
@@ -610,17 +612,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     detailsButtons.forEach(btn => {
         btn.addEventListener('click', function(e) {
-            console.log('✅ Event button clicked!');
             e.preventDefault();
             const card = this.closest('[data-event-id]');
             
             if (card) {
-                console.log('✅ Card data found');
                 const title = card.dataset.eventTitle;
                 const rules = card.dataset.eventRules;
                 const formLink = card.dataset.eventForm;
-                
-                console.log('Opening modal with title:', title);
                 
                 // Clean up previous icon
                 if (currentIconCleanup) {
@@ -632,25 +630,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 modalRules.textContent = rules;
                 googleFormLink.href = formLink;
                 
-                console.log('Modal content updated');
-                
                 // Create new 3D icon
                 try {
-                    console.log('Creating 3D icon...');
                     currentIconCleanup = create3DModalIcon(modal3DIcon);
-                    console.log('✅ 3D icon created successfully');
                 } catch (err) {
-                    console.error('❌ 3D icon creation error:', err);
+                    console.log('3D icon creation skipped');
                 }
                 
                 // Show modal with animation
                 modal.classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
-                console.log('✅ Modal shown');
                 
                 // Trigger scramble text effect for rules
                 setTimeout(() => {
-                    console.log('Starting scramble effect...');
                     scrambleText(modalRules, 1000);
                 }, 100);
             }
@@ -682,7 +674,4 @@ document.addEventListener('DOMContentLoaded', function() {
             closeModal();
         }
     });
-    
-    console.log('✅ All event listeners attached successfully!');
-    console.log('✅ script.js initialization complete!');
 });
