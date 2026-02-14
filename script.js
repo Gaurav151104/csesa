@@ -79,11 +79,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 z: this.sprite.position.z
             };
             
-            // Base velocity - continuous movement
+            // Base velocity - continuous movement (randomized for independence)
             this.baseVelocity = {
-                x: (Math.random() - 0.5) * 0.03,
-                y: (Math.random() - 0.5) * 0.02,
-                z: (Math.random() - 0.5) * 0.02
+                x: (Math.random() - 0.5) * 0.08,  // Increased randomization
+                y: (Math.random() - 0.5) * 0.06,
+                z: (Math.random() - 0.5) * 0.05
             };
             
             // Current velocity (affected by scroll speed)
@@ -101,11 +101,12 @@ document.addEventListener('DOMContentLoaded', function() {
             this.sprite.position.y += this.velocity.y * this.speedMultiplier;
             this.sprite.position.z += this.velocity.z * this.speedMultiplier;
             
-            // Smooth wraparound for infinite movement (prevents clustering)
-            const wrapX = 25;
-            const wrapY = 25;
-            const wrapZ = 15;
+            // Large wraparound boundary - particles spread far apart before wrapping
+            const wrapX = 50;
+            const wrapY = 50;
+            const wrapZ = 40;
             
+            // Smooth wraparound - particles teleport to opposite side when they leave viewport
             if (this.sprite.position.x > wrapX) {
                 this.sprite.position.x = -wrapX;
             } else if (this.sprite.position.x < -wrapX) {
