@@ -1,0 +1,317 @@
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(37, 99, 235, 0);
+    }
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+@keyframes glow-text {
+    0%, 100% {
+        filter: drop-shadow(0 0 8px rgba(37, 99, 235, 0.3));
+    }
+    50% {
+        filter: drop-shadow(0 0 16px rgba(37, 99, 235, 0.6));
+    }
+}
+
+@keyframes slide-down {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -1000px 0;
+    }
+    100% {
+        background-position: 1000px 0;
+    }
+}
+
+@keyframes bounce-in {
+    0% {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes rotate-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes blink-cursor {
+    0%, 49% {
+        opacity: 1;
+    }
+    50%, 100% {
+        opacity: 0;
+    }
+}
+
+@keyframes fadeInLine {
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes tooltipFade {
+    0% {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes button-shimmer {
+    0% {
+        background-position: -1200px 0;
+    }
+    100% {
+        background-position: 1200px 0;
+    }
+}
+
+@keyframes fadeInOverlay {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUpModal {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ------- Utility Classes ------- */
+
+.typewriter-cursor {
+    animation: blink-cursor 1s steps(1) infinite;
+}
+
+.fade-in-line {
+    animation: fadeInLine 0.6s ease-out forwards;
+    opacity: 0;
+}
+
+.copy-tooltip {
+    animation: tooltipFade 0.3s ease-out forwards;
+}
+
+.button-shimmer {
+    background: linear-gradient(90deg, #2563eb, #3b82f6, #60a5fa, #3b82f6, #2563eb);
+    background-size: 1200px 100%;
+    animation: button-shimmer 3s ease-in-out infinite;
+}
+
+.mouse-glow {
+    position: fixed;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(96, 165, 250, 0.15) 0%, rgba(59, 130, 246, 0.05) 40%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    filter: blur(80px);
+    transform: translate(-50%, -50%);
+}
+
+.tilt-card {
+    perspective: 1000px;
+    transform-style: preserve-3d;
+    transition: transform 0.1s ease-out;
+}
+
+.tilt-card-inner {
+    transform-style: preserve-3d;
+    transition: transform 0.1s ease-out;
+}
+
+.modal-overlay {
+    animation: fadeInOverlay 0.3s ease-out forwards;
+}
+
+.modal-content {
+    animation: slideUpModal 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.hero-section {
+    position: relative;
+    z-index: 1;
+}
+
+.pulse-glow {
+    animation: pulse-glow 2s infinite;
+}
+
+/* ------- Navigation Styles ------- */
+
+.nav-link {
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: bounce-in 0.6s ease-out;
+}
+
+.nav-link::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: 0;
+    right: 0;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(37, 99, 235, 0.1), transparent);
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 4px;
+}
+
+.nav-link:hover::before {
+    transform: scaleX(1);
+}
+
+.nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #2563eb, #4f46e5);
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-link:hover::after {
+    width: 100%;
+}
+
+.nav-link:hover {
+    color: #60a5fa;
+    transform: translateY(-3px) scale(1.05);
+    text-shadow: 0 0 12px rgba(96, 165, 250, 0.5);
+}
+
+.glass-navbar {
+    background: rgba(10, 10, 12, 0.8);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    animation: slide-down 0.6s ease-out;
+}
+
+.logo {
+    animation: float 3s ease-in-out infinite, glow-text 2.5s ease-in-out infinite;
+    font-weight: 900;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* ------- Button Styles ------- */
+
+.register-btn {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    animation: bounce-in 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.register-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s;
+}
+
+.register-btn:hover::before {
+    left: 100%;
+}
+
+.register-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.register-btn:active::after {
+    width: 300px;
+    height: 300px;
+}
+
+.register-btn:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 0 20px rgba(96, 165, 250, 0.6), 0 0 40px rgba(59, 130, 246, 0.4), 0 20px 25px -5px rgba(59, 130, 246, 0.3);
+    letter-spacing: 0.5px;
+}
+
+/* ------- Hamburger Menu ------- */
+
+.hamburger {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    transition: all 0.3s ease;
+    animation: bounce-in 0.7s ease-out;
+}
+
+.hamburger:hover {
+    transform: rotate(15deg) scale(1.1);
+}
+
+.hamburger:active svg {
+    animation: rotate-spin 0.4s ease;
+}
