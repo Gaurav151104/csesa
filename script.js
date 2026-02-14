@@ -2,7 +2,16 @@
 // Unified script combining all Three.js, animations, and interactions
 // Cleaned up - removed all redundancy and duplicate code
 
+// DIAGNOSTIC: Log that script is loaded
+console.log('✅ script.js is loading...');
+console.log('THREE.js available:', typeof THREE !== 'undefined');
+console.log('GSAP available:', typeof gsap !== 'undefined');
+
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ DOMContentLoaded fired - initializing script');
+    console.log('Modal element exists:', !!document.getElementById('eventModal'));
+    console.log('Modal3DIcon element exists:', !!document.getElementById('modal3DIcon'));
+    console.log('ModalRules element exists:', !!document.getElementById('modalRules'));
     
     // ===== 1. INITIALIZE THREE.JS SCENE =====
     const scene = new THREE.Scene();
@@ -460,6 +469,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // ===== 13. MODAL UTILITIES & TEXT SCRAMBLE EFFECT =====
     
+    console.log('✅ Defining scrambleText function...');
     /**
      * Scramble text animation: Characters decode from random to actual text over duration
      * @param {HTMLElement} element - Target element containing text to scramble
@@ -508,6 +518,7 @@ document.addEventListener('DOMContentLoaded', function() {
      * @param {HTMLElement} container - Container to render the icon
      */
     function create3DModalIcon(container) {
+        console.log('create3DModalIcon function called with container:', container);
         const width = container.clientWidth || 64;
         const height = container.clientHeight || 64;
 
@@ -599,13 +610,17 @@ document.addEventListener('DOMContentLoaded', function() {
     
     detailsButtons.forEach(btn => {
         btn.addEventListener('click', function(e) {
+            console.log('✅ Event button clicked!');
             e.preventDefault();
             const card = this.closest('[data-event-id]');
             
             if (card) {
+                console.log('✅ Card data found');
                 const title = card.dataset.eventTitle;
                 const rules = card.dataset.eventRules;
                 const formLink = card.dataset.eventForm;
+                
+                console.log('Opening modal with title:', title);
                 
                 // Clean up previous icon
                 if (currentIconCleanup) {
@@ -617,19 +632,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 modalRules.textContent = rules;
                 googleFormLink.href = formLink;
                 
+                console.log('Modal content updated');
+                
                 // Create new 3D icon
                 try {
+                    console.log('Creating 3D icon...');
                     currentIconCleanup = create3DModalIcon(modal3DIcon);
+                    console.log('✅ 3D icon created successfully');
                 } catch (err) {
-                    console.log('3D icon creation skipped');
+                    console.error('❌ 3D icon creation error:', err);
                 }
                 
                 // Show modal with animation
                 modal.classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
+                console.log('✅ Modal shown');
                 
                 // Trigger scramble text effect for rules
                 setTimeout(() => {
+                    console.log('Starting scramble effect...');
                     scrambleText(modalRules, 1000);
                 }, 100);
             }
@@ -661,4 +682,7 @@ document.addEventListener('DOMContentLoaded', function() {
             closeModal();
         }
     });
+    
+    console.log('✅ All event listeners attached successfully!');
+    console.log('✅ script.js initialization complete!');
 });
