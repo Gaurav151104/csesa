@@ -6,34 +6,49 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 camera.position.z = 5;
 
 // ==================== BINARY DIGIT TEXTURE GENERATION ====================
-function createBinaryTexture() {
+function createBinaryTexture(digit) {
     const canvas = document.createElement('canvas');
-    canvas.width = 64;
-    canvas.height = 64;
+    canvas.width = 256;
+    canvas.height = 256;
     const ctx = canvas.getContext('2d');
     
-    // Background
-    ctx.fillStyle = 'rgba(0, 0, 0, 0)';
-    ctx.fillRect(0, 0, 64, 64);
+    // Clear background with slight transparency
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+    ctx.fillRect(0, 0, 256, 256);
     
-    // Random 0 or 1
-    const digit = Math.random() > 0.5 ? '0' : '1';
+    // Draw circle background for better visibility
+    ctx.fillStyle = digit === '0' ? 'rgba(96, 165, 250, 0.3)' : 'rgba(0, 242, 255, 0.3)';
+    ctx.beginPath();
+    ctx.arc(128, 128, 100, 0, Math.PI * 2);
+    ctx.fill();
     
-    // Draw binary digit
-    ctx.fillStyle = '#60a5fa';
-    ctx.font = 'bold 50px monospace';
+    // Draw binary digit - MUCH LARGER AND BOLDER
+    ctx.fillStyle = digit === '0' ? '#60a5fa' : '#00f2ff';
+    ctx.font = 'bold 180px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(digit, 32, 32);
+    ctx.fillText(digit, 128, 128);
+    
+    // Add border glow
+    ctx.strokeStyle = digit === '0' ? '#3b82f6' : '#06b6d4';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(128, 128, 100, 0, Math.PI * 2);
+    ctx.stroke();
     
     return new THREE.CanvasTexture(canvas);
 }
 
-// ==================== PARTICLES SYSTEM WITH BINARY TEXTURE ====================
-const particlesCount = 500;
-const posArray = new Float32Array(particlesCount * 3);
-const originalPosArray = new Float32Array(particlesCount * 3);
-const targetPosArray = new Float32Array(particlesCount * 3);
+// Cache textures for 0 and 1
+const textureZero = createBinaryTexture('0');
+const textureOne = createBinaryTexture('1');
+
+// ==================== PARTICLES SYSTEM WITH SPRITES ====================
+const particlesCount = 150;
+const particleGroup = new THREE.Group();
+const particles = [];
+const originalPositions = [];
+const targetPositions = [];
 
 // Define cube vertices for final configuration
 const cubeSize = 2;
@@ -48,42 +63,46 @@ const cubeVertices = [
     [-cubeSize, cubeSize, cubeSize]
 ];
 
-// Distribute particles: initial random, target on cube+edges
+// Create sprites for each particle
 for(let i = 0; i < particlesCount; i++) {
-    // Initial random scattered positions
-    originalPosArray[i * 3] = (Math.random() - 0.5) * 15;
-    originalPosArray[i * 3 + 1] = (Math.random() - 0.5) * 15;
-    originalPosArray[i * 3 + 2] = (Math.random() - 0.5) * 15;
+    const isZero = Math.random() > 0.5;
+    const texture = isZero ? textureZero : textureOne;
+    const material = new THREE.SpriteMaterial({ 
+        map: texture,
+        color: isZero ? 0x60a5fa : 0x00f2ff,
+        transparent: true,
+        sizeAttenuation: true
+    });
     
-    // Copy to current position
-    posArray[i * 3] = originalPosArray[i * 3];
-    posArray[i * 3 + 1] = originalPosArray[i * 3 + 1];
-    posArray[i * 3 + 2] = originalPosArray[i * 3 + 2];
+    const sprite = new THREE.Sprite(material);
+    sprite.scale.set(0.5, 0.5, 1);
+    
+    // Initial random scattered positions
+    const pos = {
+        x: (Math.random() - 0.5) * 20,
+        y: (Math.random() - 0.5) * 20,
+        z: (Math.random() - 0.5) * 20
+    };
+    
+    sprite.position.set(pos.x, pos.y, pos.z);
+    originalPositions.push({ ...pos });
     
     // Target: distribute particles along cube edges and vertices
-    const particleIndex = i % (cubeVertices.length * 4); // Repeat pattern for edges
-    const vertexA = cubeVertices[Math.floor(i / ((particlesCount / cubeVertices.length)))];
-    const vertexB = cubeVertices[(Math.floor(i / ((particlesCount / cubeVertices.length))) + 1) % cubeVertices.length];
+    const vertexA = cubeVertices[Math.floor(i / Math.ceil(particlesCount / cubeVertices.length))];
+    const vertexB = cubeVertices[(Math.floor(i / Math.ceil(particlesCount / cubeVertices.length)) + 1) % cubeVertices.length];
     const t = (i % Math.ceil(particlesCount / cubeVertices.length)) / Math.ceil(particlesCount / cubeVertices.length);
     
-    targetPosArray[i * 3] = vertexA[0] * (1 - t) + vertexB[0] * t;
-    targetPosArray[i * 3 + 1] = vertexA[1] * (1 - t) + vertexB[1] * t;
-    targetPosArray[i * 3 + 2] = vertexA[2] * (1 - t) + vertexB[2] * t;
+    targetPositions.push({
+        x: vertexA[0] * (1 - t) + vertexB[0] * t,
+        y: vertexA[1] * (1 - t) + vertexB[1] * t,
+        z: vertexA[2] * (1 - t) + vertexB[2] * t
+    });
+    
+    particles.push(sprite);
+    particleGroup.add(sprite);
 }
 
-const particlesGeometry = new THREE.BufferGeometry();
-particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-
-const particlesMaterial = new THREE.PointsMaterial({
-    size: 0.15,
-    map: createBinaryTexture(),
-    transparent: true,
-    blending: THREE.AdditiveBlending,
-    color: 0x3b82f6
-});
-
-const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
-scene.add(particlesMesh);
+scene.add(particleGroup);
 
 // ==================== WIREFRAME CUBE ====================
 const cubeGeometry = new THREE.BoxGeometry(cubeSize * 2, cubeSize * 2, cubeSize * 2);
@@ -131,9 +150,6 @@ function createScrollTrigger() {
         onEnter: () => {
             if (!convergenceActive) {
                 convergenceActive = true;
-                // Update texture with fresh binary digits
-                particlesMaterial.map = createBinaryTexture();
-                particlesMaterial.map.needsUpdate = true;
             }
         },
         onUpdate: (self) => {
@@ -141,26 +157,20 @@ function createScrollTrigger() {
             
             // Move particles towards cube positions
             for (let i = 0; i < particlesCount; i++) {
-                const x = originalPosArray[i * 3] + (targetPosArray[i * 3] - originalPosArray[i * 3]) * progress;
-                const y = originalPosArray[i * 3 + 1] + (targetPosArray[i * 3 + 1] - originalPosArray[i * 3 + 1]) * progress;
-                const z = originalPosArray[i * 3 + 2] + (targetPosArray[i * 3 + 2] - originalPosArray[i * 3 + 2]) * progress;
+                const origPos = originalPositions[i];
+                const targetPos = targetPositions[i];
                 
-                posArray[i * 3] = x;
-                posArray[i * 3 + 1] = y;
-                posArray[i * 3 + 2] = z;
+                particles[i].position.x = origPos.x + (targetPos.x - origPos.x) * progress;
+                particles[i].position.y = origPos.y + (targetPos.y - origPos.y) * progress;
+                particles[i].position.z = origPos.z + (targetPos.z - origPos.z) * progress;
+                
+                // Scale up particles as they converge
+                const scale = 0.5 + progress * 0.3;
+                particles[i].scale.set(scale, scale, scale);
             }
-            
-            particlesGeometry.attributes.position.needsUpdate = true;
             
             // Show cube and fade in
             cubeWireframe.material.opacity = Math.min(progress * 2, 1);
-            
-            // Change particle color as they converge
-            const hue = 0x3b82f6 + (0x00f2ff - 0x3b82f6) * progress;
-            particlesMaterial.color.setHex(Math.round(hue));
-            
-            // Scale particles up as they converge
-            particlesMaterial.size = 0.15 + progress * 0.1;
         }
     });
 }
@@ -173,8 +183,8 @@ function animate() {
     requestAnimationFrame(animate);
     
     // Continuous rotation
-    particlesMesh.rotation.x += 0.0005;
-    particlesMesh.rotation.y += 0.0008;
+    particleGroup.rotation.x += 0.0005;
+    particleGroup.rotation.y += 0.0008;
     cubeWireframe.rotation.x += 0.003;
     cubeWireframe.rotation.y += 0.005;
     
