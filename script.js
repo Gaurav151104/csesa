@@ -49,7 +49,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const dotTexture = createDotTexture();
 
     // ===== 3. CREATE PARTICLE SYSTEM =====
-    const particleCount = 800;
+    // Calculate particle count dynamically: 120 particles per 1000px
+    const screenArea = (window.innerWidth * window.innerHeight) / (1000 * 1000);
+    const particleCount = Math.max(800, Math.floor(screenArea * 120));
     const particles = [];
     const particleGroup = new THREE.Group();
     scene.add(particleGroup);
@@ -65,7 +67,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             this.sprite = new THREE.Sprite(material);
-            this.sprite.scale.set(0.12, 0.12, 1);  // Smaller dots
+            this.sprite.scale.set(0.08, 0.08, 1);  // Very small dots
             
             // Random initial position (spread across viewport)
             this.sprite.position.x = (Math.random() - 0.5) * 25;
@@ -101,10 +103,11 @@ document.addEventListener('DOMContentLoaded', function() {
             this.sprite.position.y += this.velocity.y * this.speedMultiplier;
             this.sprite.position.z += this.velocity.z * this.speedMultiplier;
             
-            // Large wraparound boundary - particles spread far apart before wrapping
-            const wrapX = 50;
-            const wrapY = 50;
-            const wrapZ = 40;
+            // Large wraparound boundary (out_mode: 'out')
+            // Particles reappear on the opposite side of the screen, creating seamless continuous animation
+            const wrapX = 120;
+            const wrapY = 120;
+            const wrapZ = 80;
             
             // Smooth wraparound - particles teleport to opposite side when they leave viewport
             if (this.sprite.position.x > wrapX) {
@@ -149,34 +152,52 @@ document.addEventListener('DOMContentLoaded', function() {
     pointLight.position.set(5, 5, 5);
     scene.add(pointLight);
 
-    // ===== 5. COMMITTEE SECTION HALO EFFECT =====
+    // ===== 5. COMMITTEE SECTION HALO EFFECT WITH SCROLLTRIGGER =====
     const committeeSection = document.getElementById('committee');
     const memberCards = document.querySelectorAll('#committee .group');
     
     let isInCommitteeSection = false;
     let inHaloMode = false;
     let hoveredCardIndex = -1;
-    let pulseTime = 0;
 
-    // Detect scroll to committee section
-    const committeeObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting && !isInCommitteeSection) {
-                isInCommitteeSection = true;
-                enterHaloMode();
-            } else if (!entry.isIntersecting && isInCommitteeSection) {
-                isInCommitteeSection = false;
-                exitHaloMode();
+    // Use GSAP ScrollTrigger to detect when scrolling to committee section
+    if (committeeSection && typeof gsap !== 'undefined') {
+        gsap.registerPlugin(ScrollTrigger);
+        
+        ScrollTrigger.create({
+            trigger: committeeSection,
+            start: 'top center',
+            end: 'bottom center',
+            onEnter: () => {
+                if (!isInCommitteeSection) {
+                    isInCommitteeSection = true;
+                    enterHaloMode();
+                }
+            },
+            onLeave: () => {
+                if (isInCommitteeSection) {
+                    isInCommitteeSection = false;
+                    exitHaloMode();
+                }
+            },
+            onEnterBack: () => {
+                if (!isInCommitteeSection) {
+                    isInCommitteeSection = true;
+                    enterHaloMode();
+                }
+            },
+            onLeaveBack: () => {
+                if (isInCommitteeSection) {
+                    isInCommitteeSection = false;
+                    exitHaloMode();
+                }
             }
         });
-    }, { threshold: 0.3 });
-
-    if (committeeSection) {
-        committeeObserver.observe(committeeSection);
     }
 
     function enterHaloMode() {
         inHaloMode = true;
+        console.log('✨ Entering halo mode - particles forming glowing halos around member cards');
         
         // Animate particles to form halo around each card
         memberCards.forEach((card, cardIndex) => {
@@ -189,7 +210,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const particleIndex = cardIndex * (particleCount / memberCards.length) + i;
                 if (particles[particleIndex]) {
                     const angle = (i / (particleCount / memberCards.length)) * Math.PI * 2;
-                    const radius = 1.5;
+                    const radius = 2.2;
                     
                     particles[particleIndex].haloTarget = {
                         x: cardX + Math.cos(angle) * radius,
@@ -200,15 +221,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Animate convergence to halo positions
+        // Animate convergence to halo positions with glow effect
         gsap.to({progress: 0}, {
             progress: 1,
             duration: 2,
             ease: 'power2.inOut',
             onUpdate: function() {
-                particles.forEach((particle, i) => {
+                particles.forEach((particle) => {
                     if (particle.haloTarget) {
                         particle.toHaloPosition(particle.haloTarget, this.progress());
+                        // Increase glow as particles approach halo
+                        particle.sprite.material.opacity = 0.8 + (this.progress() * 0.4);
                     }
                 });
             }
@@ -217,15 +240,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function exitHaloMode() {
         inHaloMode = false;
+        console.log('↩️ Exiting halo mode - particles returning to background');
         
-        // Animate particles back to initial falling positions
+        // Animate particles back to initial positions
         gsap.to({progress: 0}, {
             progress: 1,
             duration: 1.5,
             ease: 'power2.inOut',
             onUpdate: function() {
                 particles.forEach((particle) => {
-                    particle.toHaloPosition(particle.initialPos, 1 - this.progress());
+                    if (particle.haloTarget) {
+                        particle.toHaloPosition(particle.initialPos, 1 - this.progress());
+                        // Fade back to normal opacity
+                        particle.sprite.material.opacity = 0.8 + ((1 - this.progress()) * 0.4);
+                    }
                 });
             }
         });
@@ -270,7 +298,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 150);
     });
 
-    // ===== 7. MEMBER CARD HOVER EFFECT =====
+    // ===== 7. MEMBER CARD HOVER EFFECT (DURING HALO MODE) =====
     memberCards.forEach((card, cardIndex) => {
         card.addEventListener('mouseenter', () => {
             if (inHaloMode) {
@@ -294,9 +322,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const particle = particles[startIdx + i];
                 particle.isHovered = true;
                 
-                // Speed increases on hover based on current scroll speed
-                particle.speedMultiplier = currentScrollSpeed * 2;
-                
                 // Boost opacity and glow
                 gsap.to(particle.sprite.material, {
                     opacity: 1,
@@ -318,9 +343,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const particle = particles[startIdx + i];
                 particle.isHovered = false;
                 
-                // Restore speed to current scroll speed
-                particle.speedMultiplier = currentScrollSpeed;
-                
                 // Reset glow
                 gsap.to(particle.sprite.material, {
                     opacity: 0.8,
@@ -335,38 +357,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ===== 8. ANIMATION LOOP =====
     let animationFrameId;
-    let frameCount = 0;
 
     function animate() {
         animationFrameId = requestAnimationFrame(animate);
-        frameCount++;
-        pulseTime += 0.016; // ~60fps
         
-        // Update particles - always animate them
-        if (!inHaloMode) {
-            // Continuous movement across all pages
-            particles.forEach(particle => {
-                particle.update();
-            });
-        } else {
-            // Update particles with halo effect
-            particles.forEach(particle => {
-                particle.update();  // Keep moving even in halo mode
-            });
-            
-            // Halo pulse effect
-            const pulseFactor = Math.sin(pulseTime * 1.5) * 0.1 + 1;
-            particles.forEach((particle, i) => {
-                if (particle.isHovered) {
-                    // Faster spin for hovered particles
-                    particle.sprite.rotationZ += 0.05;
-                    particle.sprite.scale.set(0.35 * pulseFactor, 0.35 * pulseFactor, 1);
-                } else {
-                    particle.sprite.rotationZ += 0.02;
-                    particle.sprite.scale.set(0.3 * (0.95 + pulseFactor * 0.05), 0.3 * (0.95 + pulseFactor * 0.05), 1);
-                }
-            });
-        }
+        // Update all particles continuously
+        particles.forEach(particle => {
+            particle.update();
+        });
         
         // Subtle rotation for dynamic effect
         particleGroup.rotation.z += 0.0002;
@@ -620,6 +618,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 const title = card.dataset.eventTitle;
                 const rules = card.dataset.eventRules;
                 const formLink = card.dataset.eventForm;
+                const reward = card.dataset.eventReward || 'Prizes & Certs';
+                const difficulty = card.dataset.eventDifficulty || 'Level 03';
+                const teamSize = card.dataset.eventTeam || '2-4 Members';
                 
                 // Clean up previous icon
                 if (currentIconCleanup) {
@@ -630,6 +631,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 modalTitle.textContent = title;
                 modalRules.textContent = rules;
                 googleFormLink.href = formLink;
+                
+                // Update all dynamic fields
+                const rewardElement = document.querySelector('[data-reward-value]');
+                const difficultyElement = document.querySelector('[data-difficulty-value]');
+                const teamElement = document.querySelector('[data-team-value]');
+                if (rewardElement) rewardElement.textContent = reward;
+                if (difficultyElement) difficultyElement.textContent = difficulty;
+                if (teamElement) teamElement.textContent = teamSize;
                 
                 // Create new 3D icon
                 try {
