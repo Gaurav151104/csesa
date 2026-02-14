@@ -121,8 +121,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.sprite.position.z *= -0.95;
             }
             
-            // Gentle rotation
-            this.sprite.rotation += 0.01;
+            // Gentle rotation (using rotationZ instead of read-only rotation)
+            this.sprite.rotationZ += 0.01;
         }
 
         toHaloPosition(target, progress) {
@@ -355,10 +355,10 @@ document.addEventListener('DOMContentLoaded', function() {
             particles.forEach((particle, i) => {
                 if (particle.isHovered) {
                     // Faster spin for hovered particles
-                    particle.sprite.rotation += 0.05;
+                    particle.sprite.rotationZ += 0.05;
                     particle.sprite.scale.set(0.35 * pulseFactor, 0.35 * pulseFactor, 1);
                 } else {
-                    particle.sprite.rotation += 0.02;
+                    particle.sprite.rotationZ += 0.02;
                     particle.sprite.scale.set(0.3 * (0.95 + pulseFactor * 0.05), 0.3 * (0.95 + pulseFactor * 0.05), 1);
                 }
             });
