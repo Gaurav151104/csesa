@@ -1,215 +1,392 @@
-// ==================== THREE.JS SETUP ====================
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('three-canvas'), alpha: true, antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-camera.position.z = 5;
+// ===== CONSOLIDATED THREE.JS BINARY PARTICLE SYSTEM =====
+// Unified script combining all Three.js, animations, and interactions
+// Cleaned up - removed all redundancy and duplicate code
 
-// ==================== BINARY DIGIT TEXTURE GENERATION ====================
-function createBinaryTexture(digit) {
-    const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 256;
-    const ctx = canvas.getContext('2d');
-    
-    // Clear background with slight transparency
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-    ctx.fillRect(0, 0, 256, 256);
-    
-    // Draw circle background for better visibility
-    ctx.fillStyle = digit === '0' ? 'rgba(96, 165, 250, 0.3)' : 'rgba(0, 242, 255, 0.3)';
-    ctx.beginPath();
-    ctx.arc(128, 128, 100, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Draw binary digit - MUCH LARGER AND BOLDER
-    ctx.fillStyle = digit === '0' ? '#60a5fa' : '#00f2ff';
-    ctx.font = 'bold 180px monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(digit, 128, 128);
-    
-    // Add border glow
-    ctx.strokeStyle = digit === '0' ? '#3b82f6' : '#06b6d4';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(128, 128, 100, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    return new THREE.CanvasTexture(canvas);
-}
-
-// Cache textures for 0 and 1
-const textureZero = createBinaryTexture('0');
-const textureOne = createBinaryTexture('1');
-
-// ==================== PARTICLES SYSTEM WITH SPRITES ====================
-const particlesCount = 150;
-const particleGroup = new THREE.Group();
-const particles = [];
-const originalPositions = [];
-const targetPositions = [];
-
-// Define cube vertices for final configuration
-const cubeSize = 2;
-const cubeVertices = [
-    [-cubeSize, -cubeSize, -cubeSize],
-    [cubeSize, -cubeSize, -cubeSize],
-    [cubeSize, cubeSize, -cubeSize],
-    [-cubeSize, cubeSize, -cubeSize],
-    [-cubeSize, -cubeSize, cubeSize],
-    [cubeSize, -cubeSize, cubeSize],
-    [cubeSize, cubeSize, cubeSize],
-    [-cubeSize, cubeSize, cubeSize]
-];
-
-// Create sprites for each particle
-for(let i = 0; i < particlesCount; i++) {
-    const isZero = Math.random() > 0.5;
-    const texture = isZero ? textureZero : textureOne;
-    const material = new THREE.SpriteMaterial({ 
-        map: texture,
-        color: isZero ? 0x60a5fa : 0x00f2ff,
-        transparent: true,
-        sizeAttenuation: true
-    });
-    
-    const sprite = new THREE.Sprite(material);
-    sprite.scale.set(0.5, 0.5, 1);
-    
-    // Initial random scattered positions
-    const pos = {
-        x: (Math.random() - 0.5) * 20,
-        y: (Math.random() - 0.5) * 20,
-        z: (Math.random() - 0.5) * 20
-    };
-    
-    sprite.position.set(pos.x, pos.y, pos.z);
-    originalPositions.push({ ...pos });
-    
-    // Target: distribute particles along cube edges and vertices
-    const vertexA = cubeVertices[Math.floor(i / Math.ceil(particlesCount / cubeVertices.length))];
-    const vertexB = cubeVertices[(Math.floor(i / Math.ceil(particlesCount / cubeVertices.length)) + 1) % cubeVertices.length];
-    const t = (i % Math.ceil(particlesCount / cubeVertices.length)) / Math.ceil(particlesCount / cubeVertices.length);
-    
-    targetPositions.push({
-        x: vertexA[0] * (1 - t) + vertexB[0] * t,
-        y: vertexA[1] * (1 - t) + vertexB[1] * t,
-        z: vertexA[2] * (1 - t) + vertexB[2] * t
-    });
-    
-    particles.push(sprite);
-    particleGroup.add(sprite);
-}
-
-scene.add(particleGroup);
-
-// ==================== WIREFRAME CUBE ====================
-const cubeGeometry = new THREE.BoxGeometry(cubeSize * 2, cubeSize * 2, cubeSize * 2);
-const cubeMaterial = new THREE.LineBasicMaterial({ 
-    color: 0x00f2ff, 
-    linewidth: 2,
-    transparent: true,
-    opacity: 0
-});
-const cubeWireframe = new THREE.LineSegments(
-    new THREE.EdgesGeometry(cubeGeometry),
-    cubeMaterial
-);
-scene.add(cubeWireframe);
-
-// ==================== HEARTBEAT PULSE ANIMATION ====================
-function createHeartbeatTimeline() {
-    return gsap.timeline({ repeat: -1 })
-        .to(cubeWireframe.material, { opacity: 0.3, duration: 0.3 }, 0)
-        .to(cubeWireframe.scale, { x: 1.05, y: 1.05, z: 1.05, duration: 0.15 }, 0)
-        .to(cubeWireframe.material, { opacity: 0, duration: 0.2 }, 0.35)
-        .to(cubeWireframe.scale, { x: 1, y: 1, z: 1, duration: 0.2 }, 0.35)
-        .to(cubeWireframe.material, { opacity: 0.4, duration: 0.3 }, 0.55)
-        .to(cubeWireframe.material, { opacity: 0, duration: 0.4 }, 0.85);
-}
-
-let heartbeatTL = createHeartbeatTimeline();
-let convergenceActive = false;
-
-// ==================== SCROLL TRIGGER FOR CONVERGENCE ====================
-gsap.registerPlugin(ScrollTrigger);
-
-const committeeSection = document.getElementById('committee');
-let scrollTriggerCreated = false;
-
-function createScrollTrigger() {
-    if (scrollTriggerCreated) return;
-    scrollTriggerCreated = true;
-    
-    ScrollTrigger.create({
-        trigger: committeeSection,
-        start: 'top 50%',
-        end: 'top 20%',
-        scrub: true,
-        onEnter: () => {
-            if (!convergenceActive) {
-                convergenceActive = true;
-            }
-        },
-        onUpdate: (self) => {
-            const progress = self.progress;
-            
-            // Move particles towards cube positions
-            for (let i = 0; i < particlesCount; i++) {
-                const origPos = originalPositions[i];
-                const targetPos = targetPositions[i];
-                
-                particles[i].position.x = origPos.x + (targetPos.x - origPos.x) * progress;
-                particles[i].position.y = origPos.y + (targetPos.y - origPos.y) * progress;
-                particles[i].position.z = origPos.z + (targetPos.z - origPos.z) * progress;
-                
-                // Scale up particles as they converge
-                const scale = 0.5 + progress * 0.3;
-                particles[i].scale.set(scale, scale, scale);
-            }
-            
-            // Show cube and fade in
-            cubeWireframe.material.opacity = Math.min(progress * 2, 1);
-        }
-    });
-}
-
-// Create scroll trigger once page is ready
-window.addEventListener('load', createScrollTrigger);
-
-// ==================== ANIMATION LOOP ====================
-function animate() {
-    requestAnimationFrame(animate);
-    
-    // Continuous rotation
-    particleGroup.rotation.x += 0.0005;
-    particleGroup.rotation.y += 0.0008;
-    cubeWireframe.rotation.x += 0.003;
-    cubeWireframe.rotation.y += 0.005;
-    
-    renderer.render(scene, camera);
-}
-
-animate();
-
-// Handle Resize
-window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
-// ==================== DOM INTERACTIONS ====================
 document.addEventListener('DOMContentLoaded', function() {
+    
+    // ===== 1. INITIALIZE THREE.JS SCENE =====
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ 
+        canvas: document.getElementById('three-canvas'), 
+        alpha: true, 
+        antialias: true 
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x000000, 0);
+    camera.position.z = 8;
+
+    // ===== 2. CREATE PLAIN DOT TEXTURE GENERATOR =====
+    function createDotTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 64;
+        canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+        
+        // Transparent background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0)';
+        ctx.fillRect(0, 0, 64, 64);
+        
+        // Draw plain blue dot with glow
+        ctx.fillStyle = 'rgba(59, 130, 246, 1)';
+        ctx.beginPath();
+        ctx.arc(32, 32, 20, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Soft glow
+        const gradient = ctx.createRadialGradient(32, 32, 15, 32, 32, 25);
+        gradient.addColorStop(0, 'rgba(96, 165, 250, 0.6)');
+        gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(32, 32, 25, 0, Math.PI * 2);
+        ctx.fill();
+        
+        return new THREE.CanvasTexture(canvas);
+    }
+
+    // Pre-create texture for performance
+    const dotTexture = createDotTexture();
+
+    // ===== 3. CREATE PARTICLE SYSTEM =====
+    const particleCount = 800;
+    const particles = [];
+    const particleGroup = new THREE.Group();
+    scene.add(particleGroup);
+
+    class BinaryParticle {
+        constructor() {
+            const material = new THREE.SpriteMaterial({
+                map: dotTexture,
+                color: 0x3b82f6,  // Blue
+                transparent: true,
+                sizeAttenuation: true,
+                opacity: 0.8
+            });
+
+            this.sprite = new THREE.Sprite(material);
+            this.sprite.scale.set(0.25, 0.25, 1);
+            
+            // Random initial position (spread across viewport)
+            this.sprite.position.x = (Math.random() - 0.5) * 25;
+            this.sprite.position.y = (Math.random() - 0.5) * 25;
+            this.sprite.position.z = (Math.random() - 0.5) * 15;
+            
+            // Store for reference
+            this.initialPos = {
+                x: this.sprite.position.x,
+                y: this.sprite.position.y,
+                z: this.sprite.position.z
+            };
+            
+            // Base velocity - continuous movement
+            this.baseVelocity = {
+                x: (Math.random() - 0.5) * 0.03,
+                y: (Math.random() - 0.5) * 0.02,
+                z: (Math.random() - 0.5) * 0.02
+            };
+            
+            // Current velocity (affected by scroll speed)
+            this.velocity = { ...this.baseVelocity };
+            
+            this.isHovered = false;
+            this.speedMultiplier = 1;  // Will be modified by scroll speed and hover
+            
+            particleGroup.add(this.sprite);
+        }
+
+        update() {
+            // Continuous animated movement with speed multiplier
+            this.sprite.position.x += this.velocity.x * this.speedMultiplier;
+            this.sprite.position.y += this.velocity.y * this.speedMultiplier;
+            this.sprite.position.z += this.velocity.z * this.speedMultiplier;
+            
+            // Wrap particles around viewport for infinite movement
+            if (Math.abs(this.sprite.position.x) > 20) {
+                this.sprite.position.x *= -0.95;
+            }
+            if (Math.abs(this.sprite.position.y) > 20) {
+                this.sprite.position.y *= -0.95;
+            }
+            if (Math.abs(this.sprite.position.z) > 15) {
+                this.sprite.position.z *= -0.95;
+            }
+            
+            // Gentle rotation
+            this.sprite.rotation += 0.01;
+        }
+
+        toHaloPosition(target, progress) {
+            this.sprite.position.x = this.initialPos.x + (target.x - this.initialPos.x) * progress;
+            this.sprite.position.y = this.initialPos.y + (target.y - this.initialPos.y) * progress;
+            this.sprite.position.z = this.initialPos.z + (target.z - this.initialPos.z) * progress;
+        }
+    }
+
+    // Create all particles
+    for (let i = 0; i < particleCount; i++) {
+        particles.push(new BinaryParticle());
+    }
+
+    // ===== 4. LIGHTING =====
+    const ambientLight = new THREE.AmbientLight(0x404040);
+    scene.add(ambientLight);
+    
+    const pointLight = new THREE.PointLight(0x60a5fa, 1.5);
+    pointLight.position.set(5, 5, 5);
+    scene.add(pointLight);
+
+    // ===== 5. COMMITTEE SECTION HALO EFFECT =====
+    const committeeSection = document.getElementById('committee');
+    const memberCards = document.querySelectorAll('#committee .group');
+    
+    let isInCommitteeSection = false;
+    let inHaloMode = false;
+    let hoveredCardIndex = -1;
+    let pulseTime = 0;
+
+    // Detect scroll to committee section
+    const committeeObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && !isInCommitteeSection) {
+                isInCommitteeSection = true;
+                enterHaloMode();
+            } else if (!entry.isIntersecting && isInCommitteeSection) {
+                isInCommitteeSection = false;
+                exitHaloMode();
+            }
+        });
+    }, { threshold: 0.3 });
+
+    if (committeeSection) {
+        committeeObserver.observe(committeeSection);
+    }
+
+    function enterHaloMode() {
+        inHaloMode = true;
+        
+        // Animate particles to form halo around each card
+        memberCards.forEach((card, cardIndex) => {
+            const rect = card.getBoundingClientRect();
+            const cardX = (rect.left + rect.width / 2) / window.innerWidth * 16 - 8;
+            const cardY = -(rect.top + rect.height / 2) / window.innerHeight * 9 + 4.5;
+            
+            // Assign particles to card positions (halo formation)
+            for (let i = 0; i < particleCount / memberCards.length; i++) {
+                const particleIndex = cardIndex * (particleCount / memberCards.length) + i;
+                if (particles[particleIndex]) {
+                    const angle = (i / (particleCount / memberCards.length)) * Math.PI * 2;
+                    const radius = 1.5;
+                    
+                    particles[particleIndex].haloTarget = {
+                        x: cardX + Math.cos(angle) * radius,
+                        y: cardY + Math.sin(angle) * radius,
+                        z: 0.5
+                    };
+                }
+            }
+        });
+
+        // Animate convergence to halo positions
+        gsap.to({progress: 0}, {
+            progress: 1,
+            duration: 2,
+            ease: 'power2.inOut',
+            onUpdate: function() {
+                particles.forEach((particle, i) => {
+                    if (particle.haloTarget) {
+                        particle.toHaloPosition(particle.haloTarget, this.progress());
+                    }
+                });
+            }
+        });
+    }
+
+    function exitHaloMode() {
+        inHaloMode = false;
+        
+        // Animate particles back to initial falling positions
+        gsap.to({progress: 0}, {
+            progress: 1,
+            duration: 1.5,
+            ease: 'power2.inOut',
+            onUpdate: function() {
+                particles.forEach((particle) => {
+                    particle.toHaloPosition(particle.initialPos, 1 - this.progress());
+                });
+            }
+        });
+    }
+
+    // ===== 6. SCROLL SPEED TRACKING =====
+    let currentScrollSpeed = 1;
+    let lastScrollY = 0;
+    let scrollSpeedTimeout;
+    
+    window.addEventListener('scroll', () => {
+        const currentScrollY = window.scrollY;
+        const delta = Math.abs(currentScrollY - lastScrollY);
+        
+        // Map scroll delta to speed multiplier (1 to 3x)
+        currentScrollSpeed = Math.min(3, 1 + (delta / 100));
+        
+        // Update all particles' speed multiplier
+        particles.forEach(particle => {
+            if (!particle.isHovered) {
+                particle.speedMultiplier = currentScrollSpeed;
+            }
+        });
+        
+        lastScrollY = currentScrollY;
+        
+        // Gradually slow down to normal when scroll stops
+        clearTimeout(scrollSpeedTimeout);
+        scrollSpeedTimeout = setTimeout(() => {
+            gsap.to({ speed: currentScrollSpeed }, {
+                speed: 1,
+                duration: 0.8,
+                ease: 'power2.out',
+                onUpdate: function() {
+                    particles.forEach(particle => {
+                        if (!particle.isHovered) {
+                            particle.speedMultiplier = this.targets()[0].speed;
+                        }
+                    });
+                }
+            });
+        }, 150);
+    });
+
+    // ===== 7. MEMBER CARD HOVER EFFECT =====
+    memberCards.forEach((card, cardIndex) => {
+        card.addEventListener('mouseenter', () => {
+            if (inHaloMode) {
+                hoveredCardIndex = cardIndex;
+                activateCardHalo(cardIndex);
+            }
+        });
+
+        card.addEventListener('mouseleave', () => {
+            hoveredCardIndex = -1;
+            deactivateCardHalo(cardIndex);
+        });
+    });
+
+    function activateCardHalo(cardIndex) {
+        const particlesPerCard = particleCount / memberCards.length;
+        const startIdx = cardIndex * particlesPerCard;
+        
+        for (let i = 0; i < particlesPerCard; i++) {
+            if (particles[startIdx + i]) {
+                const particle = particles[startIdx + i];
+                particle.isHovered = true;
+                
+                // Speed increases on hover based on current scroll speed
+                particle.speedMultiplier = currentScrollSpeed * 2;
+                
+                // Boost opacity and glow
+                gsap.to(particle.sprite.material, {
+                    opacity: 1,
+                    duration: 0.3
+                });
+                
+                // Change color to cyan for highlighting
+                particle.sprite.material.color.setHex(0x00f2ff);
+            }
+        }
+    }
+
+    function deactivateCardHalo(cardIndex) {
+        const particlesPerCard = particleCount / memberCards.length;
+        const startIdx = cardIndex * particlesPerCard;
+        
+        for (let i = 0; i < particlesPerCard; i++) {
+            if (particles[startIdx + i]) {
+                const particle = particles[startIdx + i];
+                particle.isHovered = false;
+                
+                // Restore speed to current scroll speed
+                particle.speedMultiplier = currentScrollSpeed;
+                
+                // Reset glow
+                gsap.to(particle.sprite.material, {
+                    opacity: 0.8,
+                    duration: 0.3
+                });
+                
+                // Restore original blue color
+                particle.sprite.material.color.setHex(0x3b82f6);
+            }
+        }
+    }
+
+    // ===== 8. ANIMATION LOOP =====
+    let animationFrameId;
+    let frameCount = 0;
+
+    function animate() {
+        animationFrameId = requestAnimationFrame(animate);
+        frameCount++;
+        pulseTime += 0.016; // ~60fps
+        
+        // Update particles - always animate them
+        if (!inHaloMode) {
+            // Continuous movement across all pages
+            particles.forEach(particle => {
+                particle.update();
+            });
+        } else {
+            // Update particles with halo effect
+            particles.forEach(particle => {
+                particle.update();  // Keep moving even in halo mode
+            });
+            
+            // Halo pulse effect
+            const pulseFactor = Math.sin(pulseTime * 1.5) * 0.1 + 1;
+            particles.forEach((particle, i) => {
+                if (particle.isHovered) {
+                    // Faster spin for hovered particles
+                    particle.sprite.rotation += 0.05;
+                    particle.sprite.scale.set(0.35 * pulseFactor, 0.35 * pulseFactor, 1);
+                } else {
+                    particle.sprite.rotation += 0.02;
+                    particle.sprite.scale.set(0.3 * (0.95 + pulseFactor * 0.05), 0.3 * (0.95 + pulseFactor * 0.05), 1);
+                }
+            });
+        }
+        
+        // Subtle rotation for dynamic effect
+        particleGroup.rotation.z += 0.0002;
+        
+        renderer.render(scene, camera);
+    }
+
+    animate();
+
+    // ===== 9. RESPONSIVE RESIZING =====
+    window.addEventListener('resize', () => {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+        renderer.setSize(width, height);
+    });
+
+    // ===== 10. CLEANUP ON PAGE LEAVE =====
+    window.addEventListener('beforeunload', () => {
+        cancelAnimationFrame(animationFrameId);
+        renderer.dispose();
+    });
+
+    // ===== 11. CODE WINDOW & MODAL INTERACTIONS =====
     const codeWindow = document.querySelector('.code-window');
     const codeLines = codeWindow ? codeWindow.querySelectorAll('.fade-in-line') : [];
     
-    // IntersectionObserver to trigger animation on viewport
+    // Typewriter effect with viewport detection
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
-                // Trigger animation
                 codeLines.forEach(line => {
                     line.style.opacity = '1';
                 });
@@ -221,20 +398,18 @@ document.addEventListener('DOMContentLoaded', function() {
     if (codeWindow) {
         observer.observe(codeWindow);
     }
-    
+
     // Copy button functionality
     const copyBtn = document.querySelector('.copy-btn');
     if (copyBtn) {
         copyBtn.addEventListener('click', function() {
             const codeText = codeWindow.innerText;
             navigator.clipboard.writeText(codeText).then(() => {
-                // Show tooltip
                 const tooltip = document.createElement('div');
                 tooltip.textContent = 'Copied!';
                 tooltip.className = 'copy-tooltip absolute -bottom-10 right-0 bg-green-500 text-white text-xs px-3 py-1 rounded whitespace-nowrap';
                 copyBtn.appendChild(tooltip);
                 
-                // Change button color
                 copyBtn.classList.add('text-green-400');
                 copyBtn.classList.remove('hover:text-blue-400');
                 
@@ -243,43 +418,29 @@ document.addEventListener('DOMContentLoaded', function() {
                     copyBtn.classList.remove('text-green-400');
                     copyBtn.classList.add('text-gray-400', 'hover:text-blue-400');
                 }, 2000);
-            }).catch(() => {
-                console.error('Failed to copy');
             });
         });
     }
     
     // Mouse-following glow effect
     const mouseGlow = document.getElementById('mouseGlow');
-    let mouseX = 0;
-    let mouseY = 0;
-    
     document.addEventListener('mousemove', (e) => {
-        mouseX = e.clientX;
-        mouseY = e.clientY;
-        
         if (mouseGlow) {
-            mouseGlow.style.left = mouseX + 'px';
-            mouseGlow.style.top = mouseY + 'px';
+            mouseGlow.style.left = e.clientX + 'px';
+            mouseGlow.style.top = e.clientY + 'px';
         }
     });
-    
-    // Hide glow when mouse leaves window
+
     document.addEventListener('mouseleave', () => {
-        if (mouseGlow) {
-            mouseGlow.style.opacity = '0';
-        }
+        if (mouseGlow) mouseGlow.style.opacity = '0';
     });
-    
+
     document.addEventListener('mouseenter', () => {
-        if (mouseGlow) {
-            mouseGlow.style.opacity = '1';
-        }
+        if (mouseGlow) mouseGlow.style.opacity = '1';
     });
     
-    // Card Tilt Effect
+    // ===== 12. CARD TILT EFFECT =====
     const tiltCards = document.querySelectorAll('.tilt-card');
-    
     tiltCards.forEach(card => {
         card.addEventListener('mousemove', (e) => {
             const rect = card.getBoundingClientRect();
@@ -297,7 +458,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Modal Functionality
+    // ===== 13. MODAL FUNCTIONALITY =====
     const modal = document.getElementById('eventModal');
     const closeModalBtn = document.getElementById('closeModal');
     const closeModalBtnFooter = document.getElementById('closeModalBtn');
@@ -309,7 +470,6 @@ document.addEventListener('DOMContentLoaded', function() {
     detailsButtons.forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
-            const eventId = this.dataset.eventId;
             const card = this.closest('[data-event-id]');
             
             if (card) {
@@ -335,14 +495,12 @@ document.addEventListener('DOMContentLoaded', function() {
     closeModalBtn.addEventListener('click', closeModal);
     closeModalBtnFooter.addEventListener('click', closeModal);
     
-    // Close modal when clicking outside
     modal.addEventListener('click', function(e) {
         if (e.target === this) {
             closeModal();
         }
     });
     
-    // Close modal on Escape key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
             closeModal();
