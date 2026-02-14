@@ -458,7 +458,134 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // ===== 13. MODAL FUNCTIONALITY =====
+    // ===== 13. MODAL UTILITIES & TEXT SCRAMBLE EFFECT =====
+    
+    /**
+     * Scramble text animation: Characters decode from random to actual text over duration
+     * @param {HTMLElement} element - Target element containing text to scramble
+     * @param {number} duration - Animation duration in milliseconds
+     */
+    function scrambleText(element, duration = 1000) {
+        const originalText = element.textContent;
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
+        const startTime = Date.now();
+
+        function generateRandomText(length) {
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars[Math.floor(Math.random() * chars.length)];
+            }
+            return result;
+        }
+
+        function animate() {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+
+            let displayText = '';
+            for (let i = 0; i < originalText.length; i++) {
+                if (Math.random() < progress) {
+                    displayText += originalText[i];
+                } else {
+                    displayText += chars[Math.floor(Math.random() * chars.length)];
+                }
+            }
+
+            element.textContent = displayText;
+
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                element.textContent = originalText;
+            }
+        }
+
+        animate();
+    }
+
+    /**
+     * Create a 3D rotating wireframe icon for modal header
+     * @param {HTMLElement} container - Container to render the icon
+     */
+    function create3DModalIcon(container) {
+        const width = container.clientWidth || 64;
+        const height = container.clientHeight || 64;
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        renderer.setSize(width, height);
+        renderer.setClearColor(0x000000, 0);
+        container.innerHTML = '';
+        container.appendChild(renderer.domElement);
+
+        // Create a wireframe octahedron
+        const geometry = new THREE.OctahedronGeometry(1, 0);
+        const material = new THREE.LineBasicMaterial({
+            color: 0x60a5fa,
+            linewidth: 2
+        });
+        const edges = new THREE.EdgesGeometry(geometry);
+        const wireframe = new THREE.LineSegments(edges, material);
+        scene.add(wireframe);
+
+        // Add point vertices for glow effect
+        const pointMaterial = new THREE.PointsMaterial({
+            color: 0x3b82f6,
+            size: 0.15,
+            sizeAttenuation: true
+        });
+        const points = new THREE.Points(geometry, pointMaterial);
+        scene.add(points);
+
+        // Lighting
+        const light = new THREE.PointLight(0x60a5fa, 0.8);
+        light.position.set(2, 2, 2);
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0x404040));
+
+        camera.position.z = 3;
+
+        // Animation loop
+        const animationId = setInterval(() => {
+            if (!container.parentElement) {
+                clearInterval(animationId);
+                renderer.dispose();
+                return;
+            }
+
+            wireframe.rotation.x += 0.015;
+            wireframe.rotation.y += 0.025;
+            wireframe.rotation.z += 0.01;
+
+            points.rotation.x += 0.015;
+            points.rotation.y += 0.025;
+            points.rotation.z += 0.01;
+
+            renderer.render(scene, camera);
+        }, 16);
+
+        // Handle window resize
+        const resizeHandler = () => {
+            const newWidth = container.clientWidth || 64;
+            const newHeight = container.clientHeight || 64;
+            if (newWidth > 0 && newHeight > 0) {
+                camera.aspect = newWidth / newHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(newWidth, newHeight);
+            }
+        };
+
+        window.addEventListener('resize', resizeHandler);
+
+        return () => {
+            clearInterval(animationId);
+            renderer.dispose();
+            window.removeEventListener('resize', resizeHandler);
+        };
+    }
+
+    // ===== 14. MODAL FUNCTIONALITY =====
     const modal = document.getElementById('eventModal');
     const closeModalBtn = document.getElementById('closeModal');
     const closeModalBtnFooter = document.getElementById('closeModalBtn');
@@ -466,6 +593,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const modalTitle = document.getElementById('modalTitle');
     const modalRules = document.getElementById('modalRules');
     const googleFormLink = document.getElementById('googleFormLink');
+    const modal3DIcon = document.getElementById('modal3DIcon');
+    
+    let currentIconCleanup = null;
     
     detailsButtons.forEach(btn => {
         btn.addEventListener('click', function(e) {
@@ -477,12 +607,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 const rules = card.dataset.eventRules;
                 const formLink = card.dataset.eventForm;
                 
+                // Clean up previous icon
+                if (currentIconCleanup) {
+                    currentIconCleanup();
+                }
+                
+                // Update modal content
                 modalTitle.textContent = title;
                 modalRules.textContent = rules;
                 googleFormLink.href = formLink;
                 
+                // Create new 3D icon
+                try {
+                    currentIconCleanup = create3DModalIcon(modal3DIcon);
+                } catch (err) {
+                    console.log('3D icon creation skipped');
+                }
+                
+                // Show modal with animation
                 modal.classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
+                
+                // Trigger scramble text effect for rules
+                setTimeout(() => {
+                    scrambleText(modalRules, 1000);
+                }, 100);
             }
         });
     });
@@ -490,10 +639,16 @@ document.addEventListener('DOMContentLoaded', function() {
     function closeModal() {
         modal.classList.add('hidden');
         document.body.style.overflow = 'auto';
+        
+        // Clean up icon when closing
+        if (currentIconCleanup) {
+            currentIconCleanup();
+            currentIconCleanup = null;
+        }
     }
     
-    closeModalBtn.addEventListener('click', closeModal);
-    closeModalBtnFooter.addEventListener('click', closeModal);
+    if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+    if (closeModalBtnFooter) closeModalBtnFooter.addEventListener('click', closeModal);
     
     modal.addEventListener('click', function(e) {
         if (e.target === this) {
