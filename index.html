@@ -362,9 +362,126 @@ Top Performers: Guaranteed interview calls from partner companies!" data-event-f
                 </div>
             </div>
 
-        </div>
+        </div><script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
     </div>
-</section>
+</section><div id="canvas-container" class="fixed inset-0 pointer-events-none z-[60]">
+    <canvas id="three-canvas"></canvas>
+</div><script>
+// 1. Setup Three.js Scene
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('three-canvas'), alpha: true, antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+// 2. Create a "Tech Diamond" (Octahedron) with Enhanced Materials
+const geometry = new THREE.OctahedronGeometry(1, 0);
+const material = new THREE.MeshPhongMaterial({
+    color: 0x3b82f6,
+    wireframe: true,
+    emissive: 0x1d4ed8,
+    shininess: 100,
+    emissiveIntensity: 0.5
+});
+const diamond = new THREE.Mesh(geometry, material);
+scene.add(diamond);
+
+// Add Glow Light (for visual enhancement)
+const glowLight = new THREE.PointLight(0x60a5fa, 1.5, 50);
+glowLight.position.set(5, 5, 5);
+scene.add(glowLight);
+
+const light = new THREE.PointLight(0xffffff, 1, 100);
+light.position.set(10, 10, 10);
+scene.add(light);
+scene.add(new THREE.AmbientLight(0x404040));
+
+camera.position.z = 5;
+
+// 3. Pulse Glow Effect - Oscillating Emissive Intensity
+const pulseTimeline = gsap.timeline({ repeat: -1 });
+pulseTimeline.to(material, {
+    emissiveIntensity: 1.2,
+    duration: 1.5,
+    ease: "sine.inOut"
+}, 0)
+.to(material, {
+    emissiveIntensity: 0.3,
+    duration: 1.5,
+    ease: "sine.inOut"
+}, 1.5);
+
+// Also pulse the glow light intensity
+gsap.timeline({ repeat: -1 })
+    .to(glowLight, { intensity: 2.5, duration: 1.5, ease: "sine.inOut" }, 0)
+    .to(glowLight, { intensity: 0.8, duration: 1.5, ease: "sine.inOut" }, 1.5);
+
+// 4. GSAP Scroll Animation with Committee Section Docking
+gsap.registerPlugin(ScrollTrigger);
+
+const committeeSection = document.getElementById('committee');
+
+// Main scroll timeline for general scrolling
+const tl = gsap.timeline({
+    scrollTrigger: {
+        trigger: "body",
+        start: "top top",
+        end: "bottom bottom",
+        scrub: 1,
+        onUpdate: (self) => {
+            // Check if Committee section is in view
+            if (committeeSection) {
+                const rect = committeeSection.getBoundingClientRect();
+                const windowHeight = window.innerHeight;
+                const committeeTop = rect.top;
+                
+                // When Committee section is visible in viewport
+                if (committeeTop < windowHeight && committeeTop > -rect.height) {
+                    // Calculate dock position: above the committee header
+                    const dockY = (committeeTop / windowHeight) * 8 - 6;
+                    
+                    gsap.to(diamond.position, {
+                        y: dockY,
+                        x: 0,
+                        duration: 0.5,
+                        overwrite: 'auto'
+                    });
+                    
+                    // Center it horizontally in viewport
+                    gsap.to(diamond, {
+                        rotation: dockY * 0.1,
+                        duration: 0.5,
+                        overwrite: 'auto'
+                    });
+                }
+            }
+        }
+    }
+});
+
+tl.to(diamond.position, { y: -4, x: 2, duration: 1 })
+  .to(diamond.rotation, { y: Math.PI * 2, z: Math.PI, duration: 1 }, 0)
+  .to(diamond.scale, { x: 1.5, y: 1.5, z: 1.5, duration: 1 }, 0.5);
+
+// 5. Animation Loop
+function animate() {
+    requestAnimationFrame(animate);
+    diamond.rotation.y += 0.003; // Constant slight spin
+    diamond.rotation.z += 0.001; // Add some Z rotation for dynamic feel
+    renderer.render(scene, camera);
+}
+animate();
+
+// Handle Resize
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script><div class="text-center mb-16 pt-32"> <div class="h-40"></div> <h2 class="text-blue-500 font-mono tracking-widest uppercase text-sm mb-2">// The Architects</h2>
+    <h3 class="text-4xl font-bold text-white">CSESA <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Executive Committee</span></h3>
+</div>
 <script src="script.js"></script>
 
 </body>
