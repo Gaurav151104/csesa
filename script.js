@@ -271,7 +271,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Map scroll delta to speed multiplier (1 to 3x)
         currentScrollSpeed = Math.min(3, 1 + (delta / 100));
         
-        // Update all particles' speed multiplier
+        // Update all particles' speed multiplier immediately
         particles.forEach(particle => {
             if (!particle.isHovered) {
                 particle.speedMultiplier = currentScrollSpeed;
@@ -281,11 +281,12 @@ document.addEventListener('DOMContentLoaded', function() {
         lastScrollY = currentScrollY;
         
         // Gradually slow down to normal when scroll stops
+        // Increased delay and duration so the boosted motion persists longer while the user is on the site
         clearTimeout(scrollSpeedTimeout);
         scrollSpeedTimeout = setTimeout(() => {
             gsap.to({ speed: currentScrollSpeed }, {
                 speed: 1,
-                duration: 0.8,
+                duration: 6, // slower decay (6s instead of 0.8s)
                 ease: 'power2.out',
                 onUpdate: function() {
                     particles.forEach(particle => {
@@ -295,7 +296,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 }
             });
-        }, 150);
+        }, 2000); // wait 2s after scroll stops before beginning slow-down
     });
 
     // ===== 7. MEMBER CARD HOVER EFFECT (DURING HALO MODE) =====
@@ -684,4 +685,6 @@ document.addEventListener('DOMContentLoaded', function() {
             closeModal();
         }
     });
+
+    // TECHNOSPHERE removed: related JS module cleaned up
 });
