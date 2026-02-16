@@ -545,3 +545,53 @@
         animation: watermark-float 8s ease-in-out infinite, watermark-glow 5s ease-in-out infinite;
     }
 }
+
+/* ===== Additional Responsive Safeguards ===== */
+
+html, body {
+    box-sizing: border-box;
+    width: 100%;
+    overflow-x: hidden; /* prevent accidental horizontal scroll from large absolute elements */
+}
+
+/* Make the decorative mouse glow scale on small screens */
+.mouse-glow {
+    width: min(400px, 40vw) !important;
+    height: min(400px, 40vw) !important;
+    filter: blur( clamp(40px, 8vw, 80px) );
+}
+
+/* Cap watermark size more robustly */
+.cse-watermark {
+    font-size: clamp(6rem, 20vw, 20rem) !important;
+}
+
+/* Reduce fixed large decorative circles on small screens to avoid overflow */
+@media (max-width: 767px) {
+    .absolute.w-96, .absolute.h-96, .w-96.h-96 {
+        width: 50vw !important;
+        height: 50vw !important;
+        left: 6% !important;
+        right: auto !important;
+        top: auto !important;
+    }
+
+    /* Ensure hero content padding is reasonable on small screens */
+    .relative.z-10.mx-auto.px-6 {
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+    }
+
+    /* Slightly smaller nav spacing */
+    .glass-navbar {
+        padding: 8px 12px !important;
+    }
+}
+
+/* Tweak medium screens where some elements may still be too large */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .absolute.w-96, .absolute.h-96, .w-96.h-96 {
+        width: 36vw !important;
+        height: 36vw !important;
+    }
+}

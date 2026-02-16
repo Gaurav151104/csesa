@@ -618,7 +618,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (card) {
                 const title = card.dataset.eventTitle;
                 const rules = card.dataset.eventRules;
-                const formLink = card.dataset.eventForm;
+                // Prefer explicit Google Form links found inside the card (register buttons)
+                // Fallback to `data-event-form` if no Google Form is present
+                let formLink = card.dataset.eventForm || '#';
+                const preferredFormAnchor = card.querySelector('a[href*="forms.gle"], a[href*="docs.google.com/forms"], a[href*="forms.office.com"]');
+                if (preferredFormAnchor && preferredFormAnchor.href) {
+                    formLink = preferredFormAnchor.href;
+                }
                 const reward = card.dataset.eventReward || 'Prizes & Certs';
                 const difficulty = card.dataset.eventDifficulty || 'Level 03';
                 const teamSize = card.dataset.eventTeam || '2-4 Members';
