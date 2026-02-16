@@ -680,6 +680,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
     if (closeModalBtnFooter) closeModalBtnFooter.addEventListener('click', closeModal);
     
+    // Ensure Google Form link opens properly on all devices
+    googleFormLink.addEventListener('click', function(e) {
+        if (this.href && !this.href.startsWith('#')) {
+            e.preventDefault();
+            window.open(this.href, '_blank');
+        }
+    });
+    
     modal.addEventListener('click', function(e) {
         if (e.target === this) {
             closeModal();

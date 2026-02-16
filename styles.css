@@ -200,6 +200,23 @@
     background: linear-gradient(135deg, rgba(30, 58, 138, 0.3) 0%, rgba(6, 182, 212, 0.15) 100%);
 }
 
+/* Modal interaction fixes */
+#eventModal {
+    pointer-events: auto;
+}
+
+#eventModal.hidden {
+    display: none !important;
+    pointer-events: none;
+}
+
+#googleFormLink {
+    pointer-events: auto;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
 .hero-section {
     position: relative;
     z-index: 1;
